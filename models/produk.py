@@ -67,3 +67,9 @@ def update_produk_by_id(id,nama,cover,stok,harga,kategori_id):
         conn.rollback()
     finally:
         cur.close()
+
+def delete_produk_by_id(id):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM produk WHERE id = %s", (id,))
+    conn.commit()
+    cur.close()

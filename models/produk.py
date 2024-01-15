@@ -36,7 +36,7 @@ def get_produk_by_id(id):
     cur.close()
 
     if produk is None:
-        return {'message':'produk tidak di temukan'}
+        return None
     
     # untuk meng convert tuple ke dictionary
     return {
@@ -51,7 +51,7 @@ def get_produk_by_id(id):
 def create_new_produk(nama,cover,stok,harga,kategori_id):
     cur = conn.cursor()
     try:
-        cur.execute('INSERT INTO produk (nama, cover, stok, harga, kategori_id) VALUES (%s,%s,%s,%s,%s)', (nama,cover,stok,harga,kategori_id))
+        cur.execute('INSERT INTO produk (id,nama, cover, stok, harga, kategori_id) VALUES (%s,%s,%s,%s,%s)', (nama,cover,stok,harga,kategori_id))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -61,10 +61,11 @@ def create_new_produk(nama,cover,stok,harga,kategori_id):
 def update_produk_by_id(id,nama,cover,stok,harga,kategori_id):
     cur = conn.cursor()
     try:
-        cur.execute("UPDATE produk SET (id,nama, cover, stok, harga, kategori_id) VALUES (%s,%s,%s,%s,%s,%s) WHERE id = %s",(id))
+        cur.execute("UPDATE produk SET nama = %s, cover = %s, stok = %s, harga = %s, kategori_id = %s WHERE id = %s;",(nama, cover, stok, harga, kategori_id, id))
         conn.commit()
     except Exception as e:
         conn.rollback()
+        raise e
     finally:
         cur.close()
 

@@ -3,6 +3,9 @@ from models.login import get_username
 from models.register import validator_register_username, validator_register_password,validator_register_fullname, register_data
 from models import produk
 from models import keranjang
+from models import user
+from models import kategori
+
 
 from flask_jwt_extended import (
     JWTManager,
@@ -96,6 +99,9 @@ def create_new_produk():
     if not nama or not cover or not stok or not harga or not kategori_id:
         return {'message': 'semua inputan harus diisi'}
 
+    if kategori.get_kategori_by_id(kategori_id) is None:
+        return {'message':'kategori tidak di temukan'}
+
     produk.create_new_produk(nama,cover,stok,harga,kategori_id)
     return {'message':'produk berhasil di masukan'}
 
@@ -105,7 +111,6 @@ def update_produk_by_id(id):
     if produk.get_produk_by_id(id) is None:
         return {'message':'produk tidak di temukan'},404
     
-    id = request.form.get("id")
     nama = request.form.get("nama")
     cover = request.form.get("cover")
     stok = request.form.get("stok")
@@ -114,6 +119,9 @@ def update_produk_by_id(id):
 
     if not nama or not cover or not stok or not harga or not kategori_id:
         return {'message': 'semua inputan harus diisi'}
+
+    if kategori.get_kategori_by_id(kategori_id) is None:
+        return {'message':'kategori tidak di temukan'}
 
     produk.update_produk_by_id(
         id,
@@ -143,9 +151,9 @@ def create_new_keranjang():
 
     if not user_id or not produk_id or not kuantitas:
         return {'message': 'semua inputan harus diisi'}
-    if not user_id:
+    if user.get_users_by_id(user_id) is None:
         return {'message':'user tidak di temukan'}
-    if not produk_id:
+    if produk.get_produk_by_id(produk_id) is None:
         return {'message':'produk tidak di temukan'}
     if not kuantitas.isdigit() or int(kuantitas) <= 0:
         return {'message':'kuantitas harus berupa angka dan lebih besar dari 0'}
@@ -154,12 +162,23 @@ def create_new_keranjang():
     keranjang.create_new_keranjang(user_id,produk_id,kuantitas)
     return {'message':'produk berhasil di masukkan di keranjang'}
 
+@app.get('/keranjang')
+def get_all_keranjang():
+    return keranjang.get_all_keranjang()
+
+@app.get("/keranjang/<int:id>")
+def get_keranjang_by_id(id):
+    pesanan = keranjang.get_keranjang_by_id(id)
+    if pesanan is None:
+        return {'message':'pesanan tidak di temukan'},402
+    return pesanan
+
 @app.delete("/keranjang/<int:id>")
 def delete_keranjang_by_id(id):
-    if keranjang.get_produk_by_id(id) is None:
-        return {'message':'produk tidak di temukan'}
-    keranjang.delete_produk_by_id(id)
-    return {'message':'produk berhasil di hapus'},200
+    if keranjang.get_keranjang_by_id(id) is None:
+        return {'message':'pesanan tidak di temukan'}
+    keranjang.delete_keranjang_by_id(id)
+    return {'message':'pesanan berhasil di hapus'},200
 
 
 

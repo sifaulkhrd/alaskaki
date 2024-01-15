@@ -5,6 +5,7 @@ from models import produk
 from models import keranjang
 from models import user
 from models import kategori
+from models import transaksi
 
 
 from flask_jwt_extended import (
@@ -143,6 +144,7 @@ def delete_produk_by_id(id):
 
 # ========================================CRUD=KERANJANG======================================================
 
+# ini untuk menambah pesanan
 @app.post("/keranjang")
 def create_new_keranjang():
     user_id = request.form.get("user_id")
@@ -162,10 +164,12 @@ def create_new_keranjang():
     keranjang.create_new_keranjang(user_id,produk_id,kuantitas)
     return {'message':'produk berhasil di masukkan di keranjang'}
 
+# ini untuk melihat semua pesanan
 @app.get('/keranjang')
 def get_all_keranjang():
     return keranjang.get_all_keranjang()
 
+# ini untuk melihat pesanan menggunakan id
 @app.get("/keranjang/<int:id>")
 def get_keranjang_by_id(id):
     pesanan = keranjang.get_keranjang_by_id(id)
@@ -173,6 +177,7 @@ def get_keranjang_by_id(id):
         return {'message':'pesanan tidak di temukan'},402
     return pesanan
 
+# ini untuk menghapus pesanan
 @app.delete("/keranjang/<int:id>")
 def delete_keranjang_by_id(id):
     if keranjang.get_keranjang_by_id(id) is None:
@@ -180,8 +185,34 @@ def delete_keranjang_by_id(id):
     keranjang.delete_keranjang_by_id(id)
     return {'message':'pesanan berhasil di hapus'},200
 
+# ========================================CRUD=TRANSAKSI======================================================
+@app.post("/transaksi")
+def create_new_transaksi():
+    user_id = request.form.get("user_id")
+    fullname = request.form.get("fullname")
+    alamat = request.form.get("alamat")
+    email = request.form.get("email")
 
 
+    if not user_id or not fullname or not alamat or not email:
+        return {'message': 'semua inputan harus diisi'}
+    if user.get_users_by_id(user_id) is None:
+        return {'message':'user tidak di temukan'}
+
+     
+    transaksi.create_new_transaksi(user_id,fullname,alamat,email)
+    return {'message':'data berhasil di masukkan di transaksi'}
+
+@app.get('/transaksi')
+def get_all_transaksi():
+    return transaksi.get_all_transaksi()
+
+@app.delete("/transaksi/<int:id>")
+def delete_transaksi_by_id(id):
+    if transaksi.get_transaksi_by_id(id) is None:
+        return {'message':'data transaksi tidak di temukan'}
+    transaksi.delete_transaksi_by_id(id)
+    return {'message':'data transaksi berhasil di hapus'},200
 
 if __name__==('main'):
     app.run(debug=True, use_reloader=True, host="0.0.0.0")

@@ -6,6 +6,9 @@ from models import keranjang
 from models import user
 from models import kategori
 from models import transaksi
+from models import transaksi_detail
+import time
+import os
 
 
 from flask_jwt_extended import (
@@ -75,35 +78,64 @@ def protected():
 
 # ========================================CRUD=PRODUK======================================================
 
-# ini untuk melihat semua produck
+# ini untuk melihat semua produck menggunakan limit
 @app.get('/produk')
 def get_all_produk():
-    return produk.get_all_produk()
+    keyword = request.args.get('keyword')
+    limit = int(request.args.get("limit", 100))
+    page = int(request.args.get("page", 1))
 
-# ini untuk melihat satu produk menggunakan id
+    return produk.get_all_produk(limit=limit, page=page, keyword=keyword)
+
+
 @app.get("/produk/<int:id>")
 def get_produk_by_id(id):
     item = produk.get_produk_by_id(id)
     if item is None:
-        return {'message':'produck tidak di temukan'},402
+        return {'message':'produk tidak di temukan'},402
+    images = produk.get_all_images(id)
+    item["image"]=images
     return item
 
 # ini untuk menambahkan produk 
 @app.post("/produk")
 def create_new_produk():
     nama = request.form.get("nama")
-    cover = request.form.get("cover")
     stok = request.form.get("stok")
     harga = request.form.get("harga")
     kategori_id = request.form.get("kategori_id")
+    files = request.files.getlist('files')
 
-    if not nama or not cover or not stok or not harga or not kategori_id:
+    if not nama or not stok or not harga or not kategori_id or not files:
         return {'message': 'semua inputan harus diisi'}
 
     if kategori.get_kategori_by_id(kategori_id) is None:
         return {'message':'kategori tidak di temukan'}
+    
+    # untuk mengijinkan tipe file yg akan di masukan
+    allowed_files = ["image/jpeg", "image/jpg"]
+    for file in files:
+        if file.content_type not in allowed_files:
+            return {'message':'tipe gambar harus jpeg atau jpg'}
 
-    produk.create_new_produk(nama,cover,stok,harga,kategori_id)
+
+    # untuk menyimpan lokasi gambar 
+    locations = []
+    for file in files:
+        tempat = "static/uploads/" + str(time.time()) + "_" + file.filename
+        file.save(tempat)
+        locations.append(tempat)
+    try:
+        id_terakhir = produk.create_new_produk(nama,stok,harga,kategori_id)
+        print(id_terakhir)
+
+        for lokasi in locations:
+            produk.upload_images(lokasi, id_terakhir)
+    except Exception as e:
+        for file in locations:
+            if os.path.exists(tempat):
+                os.remove(tempat)
+        raise e
     return {'message':'produk berhasil di masukan'}
 
 # ini untuk mengedit data produk
@@ -113,12 +145,11 @@ def update_produk_by_id(id):
         return {'message':'produk tidak di temukan'},404
     
     nama = request.form.get("nama")
-    cover = request.form.get("cover")
     stok = request.form.get("stok")
     harga = request.form.get("harga")
     kategori_id = request.form.get("kategori_id")
 
-    if not nama or not cover or not stok or not harga or not kategori_id:
+    if not nama or not stok or not harga or not kategori_id:
         return {'message': 'semua inputan harus diisi'}
 
     if kategori.get_kategori_by_id(kategori_id) is None:
@@ -127,7 +158,6 @@ def update_produk_by_id(id):
     produk.update_produk_by_id(
         id,
         nama,
-        cover,
         stok,
         harga,
         kategori_id,
@@ -139,7 +169,11 @@ def update_produk_by_id(id):
 def delete_produk_by_id(id):
     if produk.get_produk_by_id(id) is None:
         return {'message':'produk tidak di temukan'}
+    images = produk.get_all_images(id)
     produk.delete_produk_by_id(id)
+    for image in images:
+        if os.path.exists(image['lokasi']):
+            os.remove(image["lokasi"])
     return {'message':'produk berhasil di hapus'},200
 
 # ========================================CRUD=KERANJANG======================================================
@@ -213,6 +247,42 @@ def delete_transaksi_by_id(id):
         return {'message':'data transaksi tidak di temukan'}
     transaksi.delete_transaksi_by_id(id)
     return {'message':'data transaksi berhasil di hapus'},200
+
+# ========================================CRUD=TRANSAKSI=DETAIL=============================================
+
+@app.post("/transaksi_detail")
+def create_new_transaksi_detail():
+    produk_id = request.form.get("produk_id")
+    harga = request.form.get("harga")
+    kuantitas = request.form.get("kuantitas")
+    transaksi_id = request.form.get("transaksi_id")
+
+
+    if not produk_id or not harga or not kuantitas or not transaksi_id:
+        return {'message': 'semua inputan harus diisi'}
+    if produk.get_produk_by_id(produk_id) is None:
+        return {'message':'produk tidak di temukan'}
+    if transaksi.get_transaksi_by_id(transaksi_id) is None:
+        return {'message':'transaksi tidak di temukan'}
+    if not kuantitas.isdigit() or int(kuantitas) <= 0:
+        return {'message':'kuantitas harus berupa angka dan lebih besar dari 0'}
+    if not harga.isdigit() or int(harga) <= 0:
+        return {'message':'harga harus berupa angka dan lebih besar dari 0'}
+
+     
+    transaksi_detail.create_new_transaksi_detail(produk_id,harga,kuantitas,transaksi_id)
+    return {'message':'data berhasil di masukkan di transaksi detail'}
+
+@app.get('/transaksi_detail')
+def get_all_transaksi_detail():
+    return transaksi_detail.get_all_transaksi_detail()
+
+@app.delete("/transaksi_detail/<int:id>")
+def delete_transaksi_detail_by_id(id):
+    if transaksi_detail.get_transaksi_detail_by_id(id) is None:
+        return {'message':'data transaksi detail tidak di temukan'}
+    transaksi_detail.delete_transaksi_detail_by_id(id)
+    return {'message':'data transaksi detail berhasil di hapus'},200
 
 if __name__==('main'):
     app.run(debug=True, use_reloader=True, host="0.0.0.0")

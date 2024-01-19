@@ -78,16 +78,23 @@ def protected():
 
 # ========================================CRUD=PRODUK======================================================
 
-# ini untuk melihat semua produck menggunakan limit
-@app.get('/produk')
+# melihat semua produk tampa limit
+@app.get("/produk")
 def get_all_produk():
+    return produk.get_all_produk()
+
+# ini untuk melihat semua produck menggunakan limit
+@app.get('/produk_limit')
+def get_all_produk_limit():
     keyword = request.args.get('keyword')
-    limit = int(request.args.get("limit", 100))
+    limit = int(request.args.get("limit", 10))
     page = int(request.args.get("page", 1))
+    max_harga = request.args.get("max_harga")
+    min_harga = request.args.get("min_harga")
 
-    return produk.get_all_produk(limit=limit, page=page, keyword=keyword)
+    return produk.get_all_produk_limit(limit=limit, page=page, keyword=keyword, max_harga=max_harga, min_harga=min_harga)
 
-
+# ini untuk melihat produk menggunakan id
 @app.get("/produk/<int:id>")
 def get_produk_by_id(id):
     item = produk.get_produk_by_id(id)
@@ -220,6 +227,7 @@ def delete_keranjang_by_id(id):
     return {'message':'pesanan berhasil di hapus'},200
 
 # ========================================CRUD=TRANSAKSI======================================================
+# ini untuk menambah kan data transaksi
 @app.post("/transaksi")
 def create_new_transaksi():
     user_id = request.form.get("user_id")

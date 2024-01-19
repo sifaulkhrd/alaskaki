@@ -1,20 +1,70 @@
 from db import conn
 
-def get_all_produk(page:int, limit:int, keyword:str = None):
+def get_all_produk():
+    cur = conn.cursor()
+
+    try:
+        cur.execute("SELECT id, nama, stok, harga, kategori_id FROM produk")
+        produk = cur.fetchall()
+
+        # convert tuple to dictionary
+        new_produk = []
+        for item in produk:
+            new_item = {
+                "id": item[0],
+                "nama": item[1],
+                "stok": item[2],
+                "harga": item[3],
+                "kategori_id": item[4],
+            }
+            new_produk.append(new_item)
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cur.close()
+
+    return new_produk
+
+# ini untuk untuk melihat semua produk limit
+def get_all_produk_limit(page:int, limit:int, keyword:str = None, min_harga:int=None, max_harga:int=None):
     cur = conn.cursor()
 
     try:
         page = (page - 1) * limit
+        where = []
         wherekeyword = ""
         values = {"limit": limit, "offset": page}
+
         if keyword is not None:
             wherekeyword = " WHERE nama ilike %(keyword)s "
             values['keyword'] = '%'+keyword+'%'
-        
+
+        if max_harga is not None and min_harga is not None:
+            where.append("harga BETWEEN %(min_harga)s AND %(max_harga)s")
+            values['min_harga'] = min_harga
+            values['max_harga'] = max_harga
+
+        elif max_harga is not None:
+            where.append("harga <= %(max_harga)s")
+            values['max_harga'] =  max_harga
+
+        elif min_harga is not None:
+            where.append("harga >= %(min_harga)s")
+            values['min_harga'] =  min_harga
+
+        if len(where) > 0:
+            where = "WHERE " + " AND ".join(where)
+        else:
+            where = ""
+
         query = f"""
             SELECT id, nama, stok, harga, kategori_id 
             FROM produk
             {wherekeyword}
+            {where}
             ORDER BY id
             limit %(limit)s
             offset %(offset)s
@@ -22,6 +72,7 @@ def get_all_produk(page:int, limit:int, keyword:str = None):
         print(query,values)
         cur.execute(query,values)
         products = cur.fetchall()
+
         list_products = []
         for item in products:
             new_product = {
@@ -39,6 +90,7 @@ def get_all_produk(page:int, limit:int, keyword:str = None):
         raise e
     finally:
         cur.close()
+
     return list_products
 
 

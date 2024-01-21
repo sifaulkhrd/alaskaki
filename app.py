@@ -60,6 +60,10 @@ def register_new_data():
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
+
+    if not username or not password:
+        return {'message': 'semua inputan harus diisi'}
+    
     check_user_data = get_username(username,password)
     
     if check_user_data:
@@ -76,6 +80,36 @@ def protected():
     currend_user = get_jwt_identity()
     return {'logged as': currend_user}, 200
 
+
+# ========================================CRUD=KATEGORI====================================================
+# melihat semua kategori
+@app.get("/kategori")
+def get_all_kategori():
+    return kategori.get_all_kategori()
+
+# melihat kategori menggunkan id
+@app.get("/kategori/<int:id>")
+def get_all_kategori_by_id(id):
+    item = kategori.get_kategori_by_id(id)
+    if item is None:
+        return {'message':'kategori tidak di temukan'},402
+    # nama = produk.get_all_produk  (id)
+    # item["produk"]=nama
+    return item
+
+# melihat produk yg ada di kategori
+@app.get('/kategori/<int:kategori_id>/produk')
+def get_all_produk_by_kategori(kategori_id):
+    if produk.get_produk_by_kategori(kategori_id) is None:
+        return {'message':'kategori tidak di temukan'},
+    list_produk = produk.get_produk_by_kategori(kategori_id)
+    list_kategori = kategori.get_kategori_by_id(kategori_id)
+    if list_produk is None:
+        list_kategori["produk"] = "belum ada produk di kategori ini"
+    else:
+        list_kategori["produk"] = list_produk
+    print("ihfaahdfad",list_kategori)
+    return list_kategori
 # ========================================CRUD=PRODUK======================================================
 
 # melihat semua produk tampa limit
@@ -87,7 +121,7 @@ def get_all_produk():
 @app.get('/produk_limit')
 def get_all_produk_limit():
     keyword = request.args.get('keyword')
-    limit = int(request.args.get("limit", 10))
+    limit = int(request.args.get("limit", 5))
     page = int(request.args.get("page", 1))
     max_harga = request.args.get("max_harga")
     min_harga = request.args.get("min_harga")
@@ -158,6 +192,15 @@ def update_produk_by_id(id):
 
     if not nama or not stok or not harga or not kategori_id:
         return {'message': 'semua inputan harus diisi'}
+    
+    if not stok.isdigit() or int(stok) <= 0:
+        return {'message':'stok harus berupa angka dan lebih besar dari 0'}
+    
+    if not harga.isdigit() or int(harga) <= 0:
+        return {'message':'harga harus berupa angka dan lebih besar dari 0'}
+    
+    if not kategori_id.isdigit() or int(kategori_id) <= 0:
+        return {'message':'kategori_id harus berupa angka dan lebih besar dari 0'}
 
     if kategori.get_kategori_by_id(kategori_id) is None:
         return {'message':'kategori tidak di temukan'}

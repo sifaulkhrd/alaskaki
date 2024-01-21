@@ -1,5 +1,6 @@
 from db import conn
 
+# untuk melihat semua produk tanpa limit
 def get_all_produk():
     cur = conn.cursor()
 
@@ -113,6 +114,39 @@ def get_produk_by_id(id):
         "harga": produk[3],
         "kategori_id": produk[4],
     }
+
+def get_produk_by_kategori(kategori_id: int):
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT id, nama, stok, harga, kategori_id
+            FROM produk
+            WHERE kategori_id=%(kategori_id)s
+            order by id asc
+        """,
+            {"kategori_id":kategori_id}
+        )
+        result_set = cur.fetchall()
+        if result_set is not None:
+            produk = []
+            for row in result_set:
+                new_produk = {
+                    "id": row[0],
+                    "nama": row[1],
+                    "stok": row[2],
+                    "harga": row[3],
+                    "kategori_id": row[4],
+                }
+                produk.append(new_produk)
+            return produk
+        else:
+            return None
+    except Exception as e:
+        raise e
+    finally:
+        cur.close()
+
 
 def create_new_produk(nama,stok,harga,kategori_id):
     cur = conn.cursor()

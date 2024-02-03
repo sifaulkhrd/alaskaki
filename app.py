@@ -1,14 +1,23 @@
 from flask import Flask, request
 from models.login import get_username
-from models.register import validator_register_username, validator_register_password,validator_register_fullname, register_data
+from models import register 
+from controller import register_controller
+from controller import login_controller
+from controller import kategori_controller
+from controller import produk_controller
+from controller import keranjang_controller
+from controller import transaksi_controller
 from models import produk
 from models import keranjang
+from db import conn
 from models import user
 from models import kategori
 from models import transaksi
 from models import transaksi_detail
 import time
 import os
+
+
 
 
 from flask_jwt_extended import (
@@ -18,322 +27,467 @@ from flask_jwt_extended import (
     get_jwt_identity,
 )
 
+from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
+
 app = Flask(__name__)
 jwt = JWTManager(app)
 app.config["JWT_SECRET_KEY"] = "ini token nya"
+CORS(app)
+
+SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
+API_URL = 'http://petstore.swagger.io/v2/swagger.json'  # Our API url (can of course be a local resource)
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
+    API_URL,
+    config={  # Swagger UI config overrides
+        'app_name': "Test application"
+    },
+    # oauth_config={  # OAuth config. See https://github.com/swagger-api/swagger-ui#oauth2-configuration .
+    #    'clientId': "your-client-id",
+    #    'clientSecret': "your-client-secret-if-required",
+    #    'realm': "your-realms",
+    #    'appName': "your-app-name",
+    #    'scopeSeparator': " ",
+    #    'additionalQueryStringParams': {'test': "hello"}
+    # }
+)
+
+app.register_blueprint(swaggerui_blueprint)
+
 
 # ini untuk registrasi
 @app.post('/register')
 def register_new_data():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    fullname = request.form.get('fullname')
-    try:
-        # ini untuk username
-        if validator_register_username(username):
-            return {'message': 'Username sudah digunakan oleh pengguna lain'}, 402
-        if not username:
-            return {'message': 'username harus diisi'}, 402
-        
-        # ini untuk password
-        if validator_register_password(password):
-            return {'message': 'Password sudah digunakan oleh pengguna lain'}, 402
-        elif not password:
-            return {'message': 'password harus diisi'}, 402
-        elif len(password) < 8:
-            return {'message': 'Password harus 8 karakter atau lebih'}, 402
+    """
+    Endpoint untuk menangani registrasi data baru.
 
-        # ini untuk fullname
-        if validator_register_fullname(fullname):
-            return {'message': 'Fullname sudah di gunakan orang lain'}, 402
-        elif not fullname:
-            return {'message': 'Fullname harus diisi'}, 402
-        
-        # ini untuk registrasi
-        register_data(username,password,fullname)
-        return {'message': 'selamat registrasi telah berhasil'},200
-    except Exception as e:
-        raise e
+    Returns:
+    - HTTP Response: Respons dari fungsi register_new_data_controller.
+    """
+    return register_controller.register_new_data_controller()
 
+    
 # ini untuk login
 @app.post('/login')
 def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
+    """
+    Endpoint untuk menangani proses login pengguna.
 
-    if not username or not password:
-        return {'message': 'semua inputan harus diisi'}
-    
-    check_user_data = get_username(username,password)
-    
-    if check_user_data:
-        token = create_access_token(identity=check_user_data['fullname'])
-        return {'token':token}
-    else:
-       return {'message':'password atau username salah'}
+    Returns:
+    - HTTP Response: Respons dari fungsi login_user_controller.
+    """
+    return login_controller.login_user_controller()
+
+
 
 
 # ini untuk token
 @app.get('/protected')
 @jwt_required()
 def protected():
-    currend_user = get_jwt_identity()
-    return {'logged as': currend_user}, 200
+    """
+    Endpoint yang memerlukan token akses untuk akses.
+
+    Returns:
+    - HTTP Response: Respons yang menunjukkan pengguna yang terautentikasi.
+    """
+    current_user = get_jwt_identity()
+    return {'logged as': current_user["fullname"]}, 200
+
 
 
 # ========================================CRUD=KATEGORI====================================================
 # melihat semua kategori
 @app.get("/kategori")
 def get_all_kategori():
+    """
+    Endpoint untuk mendapatkan semua kategori produk.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi get_all_kategori.
+    """
     return kategori.get_all_kategori()
 
-# melihat kategori menggunkan id
+
+# melihat kategori menggunakan id
 @app.get("/kategori/<int:id>")
 def get_all_kategori_by_id(id):
-    item = kategori.get_kategori_by_id(id)
-    if item is None:
-        return {'message':'kategori tidak di temukan'},402
-    # nama = produk.get_all_produk  (id)
-    # item["produk"]=nama
-    return item
+    """
+    Endpoint untuk mendapatkan kategori berdasarkan ID beserta produk yang terkait.
 
-# melihat produk yg ada di kategori
+    Args:
+    - id (int): ID kategori yang dicari.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi kategori_by_id.
+    """
+    return kategori_controller.kategori_by_id(id)
+
+
+
+# melihat produk yang ada di kategori
 @app.get('/kategori/<int:kategori_id>/produk')
 def get_all_produk_by_kategori(kategori_id):
-    if produk.get_produk_by_kategori(kategori_id) is None:
-        return {'message':'kategori tidak di temukan'},
-    list_produk = produk.get_produk_by_kategori(kategori_id)
-    list_kategori = kategori.get_kategori_by_id(kategori_id)
-    if list_produk is None:
-        list_kategori["produk"] = "belum ada produk di kategori ini"
-    else:
-        list_kategori["produk"] = list_produk
-    print("ihfaahdfad",list_kategori)
-    return list_kategori
+    """
+    Endpoint untuk mendapatkan semua produk berdasarkan ID kategori.
+
+    Args:
+    - kategori_id (int): ID kategori yang dicari.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi kategori_id_produk_controller.
+    """
+    return kategori_controller.kategori_id_produk_controller(kategori_id)
+
+
 # ========================================CRUD=PRODUK======================================================
 
-# melihat semua produk tampa limit
-@app.get("/produk")
-def get_all_produk():
-    return produk.get_all_produk()
 
-# ini untuk melihat semua produck menggunakan limit
-@app.get('/produk_limit')
-def get_all_produk_limit():
-    keyword = request.args.get('keyword')
-    limit = int(request.args.get("limit", 5))
-    page = int(request.args.get("page", 1))
-    max_harga = request.args.get("max_harga")
-    min_harga = request.args.get("min_harga")
+@app.get('/produk')
+def get_produk():
+    """
+    Endpoint untuk mendapatkan semua produk dengan batasan halaman, limit, dan filter opsional.
 
-    return produk.get_all_produk_limit(limit=limit, page=page, keyword=keyword, max_harga=max_harga, min_harga=min_harga)
+    Returns:
+    - HTTP Response: Respons dari fungsi get_all_produk_controller.
+    """
+    return produk_controller.get_all_produk_controller()
+
+
 
 # ini untuk melihat produk menggunakan id
 @app.get("/produk/<int:id>")
 def get_produk_by_id(id):
-    item = produk.get_produk_by_id(id)
-    if item is None:
-        return {'message':'produk tidak di temukan'},402
-    images = produk.get_all_images(id)
-    item["image"]=images
-    return item
+    """
+    Endpoint untuk mendapatkan satu produk bersama gambar berdasarkan ID.
 
-# ini untuk menambahkan produk 
-@app.post("/produk")
+    Args:
+    - id (int): ID produk yang dicari.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi get_produk_id.
+    """
+    return produk_controller.get_produk_id(id)
+
+
+
+# ini untuk menambahkan produk
+@app.post("/tambah_produk")
 def create_new_produk():
-    nama = request.form.get("nama")
-    stok = request.form.get("stok")
-    harga = request.form.get("harga")
-    kategori_id = request.form.get("kategori_id")
-    files = request.files.getlist('files')
+    """
+    Endpoint untuk menambahkan produk baru.
 
-    if not nama or not stok or not harga or not kategori_id or not files:
-        return {'message': 'semua inputan harus diisi'}
-
-    if kategori.get_kategori_by_id(kategori_id) is None:
-        return {'message':'kategori tidak di temukan'}
-    
-    # untuk mengijinkan tipe file yg akan di masukan
-    allowed_files = ["image/jpeg", "image/jpg"]
-    for file in files:
-        if file.content_type not in allowed_files:
-            return {'message':'tipe gambar harus jpeg atau jpg'}
+    Returns:
+    - HTTP Response: Respons dari fungsi buat_produk_baru.
+    """
+    return produk_controller.buat_produk_baru()
 
 
-    # untuk menyimpan lokasi gambar 
-    locations = []
-    for file in files:
-        tempat = "static/uploads/" + str(time.time()) + "_" + file.filename
-        file.save(tempat)
-        locations.append(tempat)
-    try:
-        id_terakhir = produk.create_new_produk(nama,stok,harga,kategori_id)
-        print(id_terakhir)
-
-        for lokasi in locations:
-            produk.upload_images(lokasi, id_terakhir)
-    except Exception as e:
-        for file in locations:
-            if os.path.exists(tempat):
-                os.remove(tempat)
-        raise e
-    return {'message':'produk berhasil di masukan'}
 
 # ini untuk mengedit data produk
 @app.put("/produk/<int:id>")
 def update_produk_by_id(id):
-    if produk.get_produk_by_id(id) is None:
-        return {'message':'produk tidak di temukan'},404
-    
-    nama = request.form.get("nama")
-    stok = request.form.get("stok")
-    harga = request.form.get("harga")
-    kategori_id = request.form.get("kategori_id")
+    """
+    Endpoint untuk mengedit data produk berdasarkan ID.
 
-    if not nama or not stok or not harga or not kategori_id:
-        return {'message': 'semua inputan harus diisi'}
-    
-    if not stok.isdigit() or int(stok) <= 0:
-        return {'message':'stok harus berupa angka dan lebih besar dari 0'}
-    
-    if not harga.isdigit() or int(harga) <= 0:
-        return {'message':'harga harus berupa angka dan lebih besar dari 0'}
-    
-    if not kategori_id.isdigit() or int(kategori_id) <= 0:
-        return {'message':'kategori_id harus berupa angka dan lebih besar dari 0'}
+    Args:
+    - id (int): ID produk yang akan diubah.
 
-    if kategori.get_kategori_by_id(kategori_id) is None:
-        return {'message':'kategori tidak di temukan'}
+    Returns:
+    - HTTP Response: Respons dari fungsi edit_produk.
+    """
+    return produk_controller.edit_produk(id)
 
-    produk.update_produk_by_id(
-        id,
-        nama,
-        stok,
-        harga,
-        kategori_id,
-    )
-    return {'message':'produk berhasil di edit'}
 
 # ini untuk menghapus produk
 @app.delete("/produk/<int:id>")
 def delete_produk_by_id(id):
-    if produk.get_produk_by_id(id) is None:
-        return {'message':'produk tidak di temukan'}
-    images = produk.get_all_images(id)
-    produk.delete_produk_by_id(id)
-    for image in images:
-        if os.path.exists(image['lokasi']):
-            os.remove(image["lokasi"])
-    return {'message':'produk berhasil di hapus'},200
+    """
+    Endpoint untuk menghapus produk berdasarkan ID.
+
+    Args:
+    - id (int): ID produk yang akan dihapus.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi hapus_produk.
+    """
+    return produk_controller.hapus_produk(id)
+
 
 # ========================================CRUD=KERANJANG======================================================
 
 # ini untuk menambah pesanan
 @app.post("/keranjang")
+@jwt_required()
 def create_new_keranjang():
-    user_id = request.form.get("user_id")
-    produk_id = request.form.get("produk_id")
-    kuantitas = request.form.get("kuantitas")
+    """
+    Endpoint untuk menambahkan produk ke dalam keranjang pengguna.
 
-    if not user_id or not produk_id or not kuantitas:
-        return {'message': 'semua inputan harus diisi'}
-    if user.get_users_by_id(user_id) is None:
-        return {'message':'user tidak di temukan'}
-    if produk.get_produk_by_id(produk_id) is None:
-        return {'message':'produk tidak di temukan'}
-    if not kuantitas.isdigit() or int(kuantitas) <= 0:
-        return {'message':'kuantitas harus berupa angka dan lebih besar dari 0'}
-    
-    
-    keranjang.create_new_keranjang(user_id,produk_id,kuantitas)
-    return {'message':'produk berhasil di masukkan di keranjang'}
+    Returns:
+    - HTTP Response: Respons dari fungsi masukan_pesanan.
+    """
+    return keranjang_controller.masukan_pesanan()
 
-# ini untuk melihat semua pesanan
+
+# Ini adalah endpoint untuk melihat semua pesanan
 @app.get('/keranjang')
-def get_all_keranjang():
-    return keranjang.get_all_keranjang()
+@jwt_required()
+def get_data_keranjang():
+    """
+    Mengambil semua data keranjang dari database dan mengembalikannya sebagai respons.
 
-# ini untuk melihat pesanan menggunakan id
+    Returns:
+    - Response: Objek respons HTTP yang berisi data keranjang.
+
+    Note:
+    - Fungsi ini memanfaatkan fungsi `get_all_keranjang` dari modul 'keranjang'.
+    """
+    # Memanggil fungsi dari modul 'keranjang' untuk mendapatkan semua data keranjang
+    return keranjang_controller.get_all_keranjang_by_user()
+
+
+# Ini adalah endpoint untuk melihat pesanan menggunakan ID
 @app.get("/keranjang/<int:id>")
+@jwt_required()
 def get_keranjang_by_id(id):
-    pesanan = keranjang.get_keranjang_by_id(id)
-    if pesanan is None:
-        return {'message':'pesanan tidak di temukan'},402
-    return pesanan
+    """
+    Endpoint untuk melihat detail pesanan berdasarkan ID pesanan.
 
-# ini untuk menghapus pesanan
+    Args:
+    - id (int): ID pesanan.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi lihat_pesanan_by_id.
+    """
+    return keranjang_controller.lihat_pesanan_by_id(id)
+
+
+# Ini adalah endpoint untuk menghapus pesanan
 @app.delete("/keranjang/<int:id>")
-def delete_keranjang_by_id(id):
-    if keranjang.get_keranjang_by_id(id) is None:
-        return {'message':'pesanan tidak di temukan'}
-    keranjang.delete_keranjang_by_id(id)
-    return {'message':'pesanan berhasil di hapus'},200
+@jwt_required()
+def delete_keranjang_by_id_and_user_id(id):
+    """
+    Endpoint untuk menghapus pesanan berdasarkan ID pesanan dan ID pengguna.
+
+    Args:
+    - id (int): ID pesanan.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi hapus_pesanan.
+    """
+    jwt_user = get_jwt_identity()
+    user_id = jwt_user["id"]
+    return keranjang_controller.hapus_pesanan(id, user_id)
+
+
 
 # ========================================CRUD=TRANSAKSI======================================================
-# ini untuk menambah kan data transaksi
+
+# Ini adalah endpoint untuk menambahkan data transaksi
 @app.post("/transaksi")
+@jwt_required()
 def create_new_transaksi():
-    user_id = request.form.get("user_id")
-    fullname = request.form.get("fullname")
-    alamat = request.form.get("alamat")
-    email = request.form.get("email")
+    """
+    Endpoint untuk membuat transaksi baru.
+
+    Returns:
+    - HTTP Response: Respons dari fungsi masukan_data_transaksi.
+    """
+    return transaksi_controller.masukan_data_transaksi()
 
 
-    if not user_id or not fullname or not alamat or not email:
-        return {'message': 'semua inputan harus diisi'}
-    if user.get_users_by_id(user_id) is None:
-        return {'message':'user tidak di temukan'}
+@app.post("/transaksi/keranjang")
+@jwt_required()
+def transaksi_from_keranjang():
+    """
+    Menangani permintaan transaksi dari keranjang belanja.
 
-     
-    transaksi.create_new_transaksi(user_id,fullname,alamat,email)
-    return {'message':'data berhasil di masukkan di transaksi'}
+    Requires:
+    - Terdapat token JWT yang valid.
 
+    Returns:
+    - Jika transaksi berhasil: {'message': 'transaksi berhasil ditambahkan'}
+    - Jika terdapat kesalahan: {'message': 'pesan kesalahan', 'data': []}
+    """
+    return transaksi_controller.transaksi_dari_keranjang()
+
+
+# Ini adalah endpoint untuk melihat semua transaksi
 @app.get('/transaksi')
 def get_all_transaksi():
+    if not transaksi.get_all_transaksi():
+        return [{"message":"belum ada transaksi"},{"data": []}]
+    # Memanggil fungsi dari modul 'transaksi' untuk mendapatkan semua data transaksi
     return transaksi.get_all_transaksi()
 
-@app.delete("/transaksi/<int:id>")
-def delete_transaksi_by_id(id):
-    if transaksi.get_transaksi_by_id(id) is None:
-        return {'message':'data transaksi tidak di temukan'}
-    transaksi.delete_transaksi_by_id(id)
-    return {'message':'data transaksi berhasil di hapus'},200
+@app.get("/transaksi/<int:id>")
+@jwt_required()
+def get_transaksi_by_id(id):
+    """
+    Mendapatkan informasi transaksi berdasarkan ID.
+
+    Requires:
+    - Terdapat token JWT yang valid.
+
+    Parameters:
+    - id: ID transaksi yang akan dilihat detailnya.
+
+    Returns:
+    - Jika transaksi ditemukan: Informasi lengkap transaksi beserta detailnya.
+    - Jika transaksi tidak ditemukan: {'message': 'transaksi tidak ditemukan'}
+    """
+    return transaksi_controller.lihat_transaksi_detail(id)
+
+@app.delete("/transaksi/<int:transaksi_id>")
+@jwt_required()
+def delete_transaksi(transaksi_id: int):
+    """
+    Menghapus data transaksi berdasarkan ID.
+
+    Requires:
+    - Terdapat token JWT yang valid.
+
+    Parameters:
+    - transaksi_id: ID transaksi yang akan dihapus.
+
+    Returns:
+    - Jika transaksi berhasil dihapus: {'message': 'Transaksi berhasil dihapus'}
+    - Jika transaksi tidak ditemukan: {'message': 'Transaksi tidak ditemukan'}
+    - Jika terjadi kesalahan lainnya: {'message': 'pesan kesalahan'}
+    """
+    return transaksi_controller.hapus_data_transaksi(transaksi_id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # Ini adalah endpoint untuk menghapus data transaksi berdasarkan ID
+# @app.delete("/transaksi/<int:id>")
+# def delete_transaksi_by_id(id):
+#     """
+#     Menghapus data transaksi berdasarkan ID.
+
+#     Parameters:
+#     - id (int): ID transaksi yang akan dihapus.
+
+#     Returns:
+#     - dict: Pesan keberhasilan atau pesan kesalahan beserta kode status.
+
+#     Note:
+#     - Fungsi ini memanfaatkan fungsi `get_transaksi_by_id` dan `delete_transaksi_by_id` dari modul 'transaksi'.
+#     """
+#     # Memeriksa apakah data transaksi dengan ID yang diberikan ditemukan atau tidak
+#     if transaksi.get_transaksi_by_id(id) is None:
+#         return {'message': 'Data transaksi tidak ditemukan'}
+
+#     # Memanggil fungsi dari modul 'transaksi' untuk menghapus data transaksi berdasarkan ID
+#     transaksi.delete_transaksi_by_id(id)
+
+#     # Memberikan respons bahwa data transaksi berhasil dihapus
+#     return {'message': 'Data transaksi berhasil dihapus'}, 200
+
 
 # ========================================CRUD=TRANSAKSI=DETAIL=============================================
 
+# Ini adalah endpoint untuk menambahkan data transaksi detail
 @app.post("/transaksi_detail")
-def create_new_transaksi_detail():
+def create_new_transaksi_details():
+    """
+    Menambahkan data transaksi detail baru berdasarkan input dari pengguna.
+
+    Returns:
+    - dict: Pesan keberhasilan atau pesan kesalahan.
+
+    Note:
+    - Fungsi ini memanfaatkan fungsi `get_produk_by_id`, `get_transaksi_by_id`, dan `create_new_transaksi_detail`
+      dari modul 'produk', 'transaksi', dan 'transaksi_detail'.
+    """
+    # Mengambil data input dari formulir atau payload
     produk_id = request.form.get("produk_id")
     harga = request.form.get("harga")
     kuantitas = request.form.get("kuantitas")
     transaksi_id = request.form.get("transaksi_id")
 
 
+    # Memeriksa apakah semua input telah diisi
     if not produk_id or not harga or not kuantitas or not transaksi_id:
-        return {'message': 'semua inputan harus diisi'}
+        return {'message': 'Semua inputan harus diisi'}
+
+    # Memeriksa apakah produk dengan ID yang diberikan ditemukan atau tidak
     if produk.get_produk_by_id(produk_id) is None:
-        return {'message':'produk tidak di temukan'}
+        return {'message': 'Produk tidak ditemukan'}
+
+    # Memeriksa apakah transaksi dengan ID yang diberikan ditemukan atau tidak
     if transaksi.get_transaksi_by_id(transaksi_id) is None:
-        return {'message':'transaksi tidak di temukan'}
+        return {'message': 'Transaksi tidak ditemukan'}
+
+    # Memeriksa apakah kuantitas dan harga merupakan angka yang lebih besar dari 0
     if not kuantitas.isdigit() or int(kuantitas) <= 0:
-        return {'message':'kuantitas harus berupa angka dan lebih besar dari 0'}
+        return {'message': 'Kuantitas harus berupa angka dan lebih besar dari 0'}
     if not harga.isdigit() or int(harga) <= 0:
-        return {'message':'harga harus berupa angka dan lebih besar dari 0'}
+        return {'message': 'Harga harus berupa angka dan lebih besar dari 0'}
 
-     
-    transaksi_detail.create_new_transaksi_detail(produk_id,harga,kuantitas,transaksi_id)
-    return {'message':'data berhasil di masukkan di transaksi detail'}
+    # Memanggil fungsi dari modul 'transaksi_detail' untuk membuat data transaksi detail baru
+    transaksi_detail.create_new_transaksi_detail(produk_id, harga, kuantitas, transaksi_id)
 
+    produk.update_produk_stok(produk_id, kuantitas)
+    # Memberikan respons bahwa data berhasil dimasukkan di transaksi detail
+    return {'message': 'Data berhasil dimasukkan di transaksi detail'}
+
+
+# Ini adalah endpoint untuk melihat semua data transaksi detail
 @app.get('/transaksi_detail')
 def get_all_transaksi_detail():
+    """
+    Mengambil semua data transaksi detail dari database dan mengembalikannya sebagai respons.
+
+    Returns:
+    - Response: Objek respons HTTP yang berisi data transaksi detail.
+
+    Note:
+    - Fungsi ini memanfaatkan fungsi `get_all_transaksi_detail` dari modul 'transaksi_detail'.
+    """
+    # Memanggil fungsi dari modul 'transaksi_detail' untuk mendapatkan semua data transaksi detail
     return transaksi_detail.get_all_transaksi_detail()
 
+
+# Ini adalah endpoint untuk menghapus data transaksi detail berdasarkan ID
 @app.delete("/transaksi_detail/<int:id>")
 def delete_transaksi_detail_by_id(id):
+    """
+    Menghapus data transaksi detail berdasarkan ID.
+
+    Parameters:
+    - id (int): ID transaksi detail yang akan dihapus.
+
+    Returns:
+    - dict: Pesan keberhasilan atau pesan kesalahan beserta kode status.
+
+    Note:
+    - Fungsi ini memanfaatkan fungsi `get_transaksi_detail_by_id` dan `delete_transaksi_detail_by_id`
+      dari modul 'transaksi_detail'.
+    """
+    # Memeriksa apakah data transaksi detail dengan ID yang diberikan ditemukan atau tidak
     if transaksi_detail.get_transaksi_detail_by_id(id) is None:
-        return {'message':'data transaksi detail tidak di temukan'}
+        return {'message': 'Data transaksi detail tidak ditemukan'}
+
+    # Memanggil fungsi dari modul 'transaksi_detail' untuk menghapus data transaksi detail berdasarkan ID
     transaksi_detail.delete_transaksi_detail_by_id(id)
-    return {'message':'data transaksi detail berhasil di hapus'},200
+
+    # Memberikan respons bahwa data transaksi detail berhasil dihapus
+    return {'message': 'Data transaksi detail berhasil dihapus'}, 200
+
 
 if __name__==('main'):
     app.run(debug=True, use_reloader=True, host="0.0.0.0")

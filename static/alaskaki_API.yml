@@ -1,0 +1,418 @@
+openapi: '3.0.2'
+info:
+  title: alaskaki API 
+  version: '1.0'
+servers:
+  - url: http://127.0.0.1:5000
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /register:
+    post:
+      tags:
+        - login register
+      description: register new data
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                fullname:
+                  type: string
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /login:
+    post:
+      description: login
+      tags:
+        - login register
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /protected:
+    get:
+      tags:
+        - login register
+      description: masukan token anda
+      security:
+        - bearerToken: []
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /kategori:
+    get:
+      tags:
+        - kategori
+      description: melihat semua kategori
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /kategori/{kategori_id}/produk:
+    get:
+      tags:
+        - kategori
+      description: melihat semua produk yg ada di kategori
+      parameters:
+        - name: kategori_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+
+  /produk:
+    get:
+      tags:
+        - produk
+      description: melihat semua produk dengan limit
+      parameters:
+
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            example: 5
+
+        - name: page
+          in: query
+          schema:
+            type: integer
+            example: 1
+
+        - name: keyword
+          in: query
+          schema:
+            type: string
+
+        - name: max_harga
+          in: query
+          schema:
+            type: integer
+
+        - name: min_harga
+          in: query
+          schema:
+            type: integer
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /tambah_produk:
+    post:
+      description: untuk menambahkan produk
+      tags:
+        - produk
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nama:
+                  type: string
+                stok:
+                  type: integer
+                harga:
+                  type: integer
+                kategori_id:
+                  type: integer
+                files:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /produk/{id}:
+    get:
+      tags:
+        - produk
+      description: melihat detail produk dengan id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+    put:
+      description: untuk mengubah data produk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      tags:
+        - produk
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nama:
+                  type: string
+                stok:
+                  type: integer
+                harga:
+                  type: integer
+                kategori_id:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+    delete:
+      description: untuk menghapus data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      tags:
+        - produk
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /keranjang:
+    post:
+      description: untuk menambahkan data pesanan
+      security:
+        - bearerToken: []
+      
+      tags:
+        - keranjang
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                produk_id:
+                  type: integer
+                kuantitas:
+                  type: integer
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+    get:
+      tags:
+        - keranjang
+      description: melihat semua pesanan di dalam keranjang
+      security:
+        - bearerToken: []
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient   
+
+  /keranjang/{id}:
+    get:
+      tags:
+        - keranjang
+      description: melihat pesanan dengan id
+      security:
+        - bearerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+    
+    delete:
+      description: untuk menghapus data pesanan
+      security:
+        - bearerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      tags:
+        - keranjang
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+  /transaksi:
+    post:
+      description: untuk menambahkan data transaksi
+      security:
+        - bearerToken: []
+      
+      tags:
+        - transaksi
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fullname:
+                  type: string
+                alamat:
+                  type: string
+                email:
+                  type: string
+                produk_id:
+                  type: integer
+                kuantitas:
+                  type: integer
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+    get:
+      tags:
+        - transaksi
+      description: melihat semua data transaksi
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient  
+
+  /transaksi/keranjang:
+    post:
+      tags:
+        - transaksi
+      description: melihat semua data transaksi
+      security:
+        - bearerToken: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fullname:
+                  type: string
+                alamat:
+                  type: string
+                email:
+                  type: string
+                keranjang_id:
+                  type: integer
+                kuantitas:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient  
+
+  /transaksi/{id}:
+    get:
+      description: untuk menghapus data transaksi
+      security:
+        - bearerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      tags:
+        - transaksi
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+    delete:
+      description: untuk melihat 1 data transaksi
+      security:
+        - bearerToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      tags:
+        - transaksi
+
+      responses:
+        '200':
+          description: OK
+        '402':
+          description: respon kesalahan klient
+
+
+  

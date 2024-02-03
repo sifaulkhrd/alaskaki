@@ -1,22 +1,12 @@
 from db import conn
 
-def get_kategori_by_id(id):
-    cur = conn.cursor()
-    cur.execute('SELECT id, nama FROM kategori WHERE id = %s', (id,))
-    kategori = cur.fetchone()
-
-    conn.commit()
-    cur.close()
-
-    if kategori is None:
-        return None
-    
-    return {
-        "id": kategori[0],
-        "nama": kategori[1],
-    }
-
 def get_all_kategori():
+    """
+    Mendapatkan semua kategori produk.
+
+    Returns:
+    - list: List berisi dictionary kategori (id dan nama).
+    """
     cur = conn.cursor()
 
     try:
@@ -40,4 +30,34 @@ def get_all_kategori():
         cur.close()
 
     return new_kategori
+
+
+
+
+
+def get_kategori_by_id(id):
+    """
+    Mendapatkan kategori berdasarkan ID.
+
+    Args:
+    - id (int): ID kategori yang dicari.
+
+    Returns:
+    - dict or None: Dictionary berisi informasi kategori (id dan nama) jika ditemukan, atau None jika tidak ditemukan.
+    """
+    cur = conn.cursor()
+    cur.execute('SELECT id, nama FROM kategori WHERE id = %s', (id,))
+    kategori = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+
+    if kategori is None:
+        return None
+    
+    return {
+        "id": kategori[0],
+        "nama": kategori[1],
+    }
+
 

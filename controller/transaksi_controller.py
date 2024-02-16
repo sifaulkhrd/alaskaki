@@ -5,6 +5,7 @@ from models import transaksi
 from models import keranjang
 from models import transaksi_detail
 from errors import DatabaseError
+from email_validator import validate_email, EmailNotValidError
 
 from flask_jwt_extended import (
     get_jwt_identity,
@@ -14,8 +15,7 @@ from db import conn
 
 def masukan_data_transaksi():
     """
-    controller untuk membuat data transaksi baru.
-
+    controller untuk membuat data transaksi baru. 
     Returns:
     - dict: Dictionary berisi pesan sukses atau pesan kesalahan jika transaksi tidak berhasil.
     - HTTP Response: Respons dari fungsi masukan_data_transaksi.
@@ -40,9 +40,18 @@ def masukan_data_transaksi():
     data_produk = produk.get_produk_by_id(produk_id)
     if data_produk is None:
         return {"message": "produk tidak ditemukan"}, 404
-    
+
     cur = conn.cursor()
     try:
+
+        try:
+            validate_email(email)
+        except EmailNotValidError as e:
+            return {'message': 'Format email tidak valid'}, 404
+        
+        # if int(data_produk["stok"]) < int(kuantitas):
+        #     raise Exception({"message": f"stok dari produk id {data_produk['produk_id']} hanya tersisa {data_produk['stok']} barang"})
+
         # Menghitung jumlah harga berdasarkan kuantitas dan harga produk
         total = int(kuantitas) * int(data_produk['harga'])
 
@@ -51,6 +60,9 @@ def masukan_data_transaksi():
 
         # Menambahkan entri transaksi detail dengan jumlah harga
         transaksi_detail.create_new_transaksi_detail(produk_id, data_produk['harga'], kuantitas, transaksi_id, total)
+
+        if int(kuantitas) > int(data_produk['stok']):
+            return {"message": f"Stok dari produk ID {produk_id} hanya tersisa {data_produk['stok']} barang"}
 
         # Mengurangi stok produk setelah transaksi berhasil ditambahkan
         produk.update_produk_stok(produk_id, kuantitas)
@@ -97,6 +109,11 @@ def transaksi_dari_keranjang():
         # Memeriksa apakah semua input telah diisi
         if not user_id or not fullname or not alamat or not email or not keranjang_id or not kuantitas:
             return {'message': 'Semua inputan harus diisi'}, 404
+        
+        try:
+            validate_email(email)
+        except EmailNotValidError as e:
+            return {'message': 'Format email tidak valid'}, 404
 
         # Membuat transaksi baru dan mendapatkan ID transaksi
         transaksi_id = transaksi.create_new_transaksi(user_id, fullname, alamat, email)

@@ -68,6 +68,33 @@ paths:
           description: OK
         '402':
           description: respon kesalahan klient
+  /user:
+    put:
+      tags:
+        - login register
+      description: Registrasi ulang
+      security:
+        - bearerToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                fullname:
+                  type: string
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Tidak diizinkan - pengguna tidak memiliki izin untuk mengubah data pengguna lain
+        '422':
+          description: Input tidak valid
 
   /kategori:
     get:

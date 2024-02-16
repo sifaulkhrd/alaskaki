@@ -1,6 +1,6 @@
 from flask import Flask, request
 from models.register import validator_register_username, validator_register_password,validator_register_fullname, register_data
-
+from models.user import get_users_by_id,edit_data_user
 
 
 def register_new_data_controller():
@@ -39,3 +39,38 @@ def register_new_data_controller():
         return {'message': 'Selamat, registrasi berhasil'}, 200
     except Exception as e:
         raise e
+
+
+def edit_user_controller(current_user_id):
+    """
+    Fungsi ini mengontrol proses pengeditan data pengguna.
+
+    Parameters:
+        current_user_id (str): ID pengguna yang sedang masuk.
+
+    Returns:
+        tuple: Tuple berisi dictionary pesan respons dan kode status HTTP.
+    """
+    try:
+        # Pastikan bahwa current_user_id adalah string yang valid
+        current_user_id = str(current_user_id)
+    except ValueError:
+        return {'message': 'ID pengguna tidak valid'}, 400
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+    fullname = request.form.get('fullname')
+
+    if not username or not password or not fullname:
+        return {'message': 'Semua input harus diisi'}, 400
+    
+    # Memperbarui data pengguna
+    edit_data_user(
+        current_user_id,  # Menggunakan ID pengguna dari token JWT
+        username,
+        password,
+        fullname,
+    )
+    return {'message': 'Pembaruan data pengguna berhasil'}, 200
+
+

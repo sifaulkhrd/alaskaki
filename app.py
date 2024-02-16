@@ -1,3 +1,7 @@
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, request
 from models.login import get_username
 from models import register 
@@ -9,7 +13,9 @@ from controller import keranjang_controller
 from controller import transaksi_controller
 from models import produk
 from models import keranjang
+
 from db import conn
+
 from models import user
 from models import kategori
 from models import transaksi
@@ -18,14 +24,14 @@ import time
 import os
 
 
-
-
 from flask_jwt_extended import (
     JWTManager,
     jwt_required,
     create_access_token,
     get_jwt_identity,
 )
+def get_current_user_id():
+    return get_jwt_identity()
 
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -81,6 +87,17 @@ def login():
     """
     return login_controller.login_user_controller()
 
+@app.put('/user')
+@jwt_required()
+def edit_user():
+    """
+    Fungsi ini menangani permintaan PUT untuk mengedit data pengguna.
+
+    Returns:
+        tuple: Tuple berisi dictionary pesan respons dan kode status HTTP.
+    """
+    current_user_id = get_current_user_id()  # Fungsi yang mendapatkan ID pengguna yang saat ini masuk
+    return register_controller.edit_user_controller(current_user_id)
 
 
 

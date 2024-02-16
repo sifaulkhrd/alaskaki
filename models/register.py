@@ -1,4 +1,5 @@
 from db import conn
+from flask_bcrypt import Bcrypt
 
 def validator_register_username(username):
     """
@@ -89,7 +90,9 @@ def register_data(username, password, fullname):
     """
     cur = conn.cursor()
     try:
-        cur.execute('INSERT INTO users (username, password, fullname) VALUES (%s, %s, %s)', (username, password, fullname))
+        bcrypt = Bcrypt()
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        cur.execute('INSERT INTO users (username, password, fullname) VALUES (%s, %s, %s)', (username, hashed_password, fullname))
         conn.commit()
     except Exception as e:
         conn.rollback()

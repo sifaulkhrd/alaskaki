@@ -1,6 +1,7 @@
 
 from dotenv import load_dotenv
 load_dotenv()
+from flask_bcrypt import Bcrypt
 
 from flask import Flask, request
 from models.login import get_username
@@ -37,6 +38,7 @@ from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 
 app = Flask(__name__)
+bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 app.config["JWT_SECRET_KEY"] = "ini token nya"
 CORS(app)

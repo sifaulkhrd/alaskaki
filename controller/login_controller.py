@@ -1,6 +1,7 @@
 from flask import Flask, request
 from models.login import get_username
 from datetime import timedelta
+from flask_bcrypt import Bcrypt
 
 from flask_jwt_extended import (
     JWTManager,
@@ -23,13 +24,36 @@ def login_user_controller():
     if not username or not password:
         return {'message': 'Semua inputan harus diisi'}
     
-    # Memeriksa data pengguna
-    check_user_data = get_username(username, password)
+        # Memeriksa data pengguna
+    check_user = get_username(username)
     
-    # Jika data pengguna ditemukan, membuat token akses
-    if check_user_data:
-        token = create_access_token(identity={"id": check_user_data[0]["id"], "fullname": check_user_data[1]["fullname"]}, expires_delta=timedelta(hours=1))
+    if check_user:
+
+        hashed_password = check_user['password']
+
+        bcrypt = Bcrypt()
+
+        if bcrypt.check_password_hash(hashed_password, password):
+            # Jika data pengguna ditemukan, membuat token akses
+            token = create_access_token(identity={"id": check_user["id"], "fullname": check_user["fullname"]}, expires_delta=timedelta(hours=1))
+            
+            return {'token': token}
+    
+    return {'message': 'Password atau username salah'}
+    
+    # # Memeriksa data pengguna
+    # check_user_data = get_username(username, password)
+
+    # hashed_password = check_user_data['password']
+
+    # bcrypt = Bcrypt()
+
+    # if bcrypt.check_password_hash(hashed_password, password):
+    
+    # # Jika data pengguna ditemukan, membuat token akses
+    # # if check_user_data:
+    #     token = create_access_token(identity={"id": check_user_data[0]["id"], "fullname": check_user_data[1]["fullname"]}, expires_delta=timedelta(hours=1))
         
-        return {'token': token}
-    else:
-        return {'message': 'Password atau username salah'}
+    #     return {'token': token}
+    # else:
+    #     return {'message': 'Password atau username salah'}

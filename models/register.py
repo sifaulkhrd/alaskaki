@@ -90,9 +90,9 @@ def register_data(username, password, fullname):
     """
     cur = conn.cursor()
     try:
-        bcrypt = Bcrypt()
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        cur.execute('INSERT INTO users (username, password, fullname) VALUES (%s, %s, %s)', (username, hashed_password, fullname))
+        # bcrypt = Bcrypt()
+        # hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        cur.execute('INSERT INTO users (username, password, fullname) VALUES (%s, %s, %s)', (username, password, fullname))
         conn.commit()
     except Exception as e:
         conn.rollback()

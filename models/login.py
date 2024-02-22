@@ -1,6 +1,6 @@
 from db import conn
 
-def get_username(username, password):
+def get_username(username):
     """
     Mendapatkan data pengguna berdasarkan username dan password.
 
@@ -16,10 +16,10 @@ def get_username(username, password):
     """
     cur = conn.cursor()
     try:
-        cur.execute('SELECT id, username, password, fullname from users where username = %s AND password = %s', (username, password))
+        cur.execute('SELECT id, username, password, fullname from users where username = %s', (username,))
         user = cur.fetchone()
         if user:
-            return [{"id": user[0]}, {"fullname": user[3]}]
+            return {"id": user[0], "username": user[1], "password": user[2], "fullname": user[3]}
     except Exception as e:
         raise e
     finally:

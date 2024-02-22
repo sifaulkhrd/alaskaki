@@ -44,7 +44,7 @@ app.config["JWT_SECRET_KEY"] = "ini token nya"
 CORS(app)
 
 SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI (without trailing '/')
-API_URL = 'http://petstore.swagger.io/v2/swagger.json'  # Our API url (can of course be a local resource)
+API_URL = '/static/openapi.json'  # Our API url (can of course be a local resource)
 
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -508,5 +508,5 @@ def delete_transaksi_detail_by_id(id):
     return {'message': 'Data transaksi detail berhasil dihapus'}, 200
 
 
-if __name__==('main'):
+if __name__==('__main__'):
     app.run(debug=True, use_reloader=True, host="0.0.0.0")
